@@ -1,0 +1,24 @@
+#  Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# .tfvars files
+#*.tfvars
+
+# credentials
+credentials
+
+# .tfplan files
+*.tfplan
+
+# lock file
+.terraform.lock.hcl
+
+# zip
+*.zip
+
+# vs code
+.vs
