@@ -7,7 +7,6 @@ variable "gitlab_url" {
 variable "gitlab_token" {
   description = "Gilab token"
   type        = string
-  default     = "JzDRpiQw-AuyaDCxsUbr"
 }
 
 variable "build_number" {
