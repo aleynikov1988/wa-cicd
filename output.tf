@@ -1,4 +1,4 @@
-# Simulation Outputs
+# Groups and Projects Outputs
 output "groups_info" {
   value = {
     projects_url_list = module.gitlab_groups.project_url_list

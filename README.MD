@@ -46,5 +46,5 @@ terraform plan -var="build_number=1.0.11" -var-file="./envs/2710.tfvars" -out wa
 
 | Name | Description |
 |------|-------------|
-| groups\_info | Simulation Outputs |
+| groups\_info | Groups and Projects Outputs |
 <!-- END_TF_DOCS -->
