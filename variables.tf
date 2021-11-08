@@ -4,17 +4,13 @@ variable "gitlab_url" {
   default     = "https://gitlab.quarkops.com/api/v4"
 }
 
-variable "gitlab_token" {
-  description = "Gilab token"
-  type        = string
-  default     = "JzDRpiQw-AuyaDCxsUbr"
-}
-
 variable "build_number" {
-  type        = string
+  type = string
+}
+variable "group_names" {
+  type = list(any)
 }
 
 variable "env_type" {
-  type        = string
-  default     = "dev"
+  type = string
 }
