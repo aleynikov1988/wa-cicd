@@ -1,0 +1,130 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+master_node_prefix = "master"
+master_node_count = 1
+worker_node_prefix = "worker"
+worker_node_count = 1
+ubuntu_version = "ubuntu/focal64"
+cluster_cidr_prefix = "192.168.55"
+centos_version      = "bento/centos-7.5"
+
+Vagrant.configure("2") do |config|
+  config.vm.provision "file", source: "ansible/files/vagrant.key.pub", destination: "/home/vagrant/.ssh/"
+  config.vm.define "mngm" do |mngm|
+    mngm.vm.box = "#{ubuntu_version}"
+    mngm.vm.box_check_update = true
+    mngm.vm.hostname = "mngm"
+    mngm.vm.provider "virtualbox" do |vb|
+      vb.name = "mngm"
+      vb.check_guest_additions = true
+      vb.cpus = 2
+      vb.memory = 1024
+    end
+    mngm.vm.network "private_network", ip: "#{cluster_cidr_prefix}.235"
+    mngm.vm.synced_folder "ansible/", "/home/vagrant/ansible"
+    mngm.vm.provision "shell", path: "./scripts/mngm.sh"
+    mngm.vm.provision "shell", inline: <<-SHELL
+      sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
+      service ssh restart
+    SHELL
+    mngm.vm.provision "ansible_local" do |ansible|
+      ansible.install  = true
+      ansible.playbook = "./ansible/playbook.yml"
+    end
+  end
+  # Master config
+  (1..master_node_count).each do |i|
+    config.vm.define "#{master_node_prefix}-#{i}" do |node|
+      node.vm.box = "#{ubuntu_version}"
+      node.vm.box_check_update = true
+      node.vm.hostname = "#{master_node_prefix}-#{i}"
+      node.vm.provider "virtualbox" do |vb|
+        vb.name = "#{master_node_prefix}-#{i}"
+        vb.check_guest_additions = true
+        vb.cpus = 1
+        vb.memory = 1024
+      end
+      node.vm.network "private_network", ip: "#{cluster_cidr_prefix}.#{i+1}"
+
+      node.vm.provision "shell", inline: <<-SHELL
+        sudo apt update
+        sudo apt install git
+        sudo apt upgrade -y
+      SHELL
+      node.vm.provision "shell", inline: <<-SHELL
+        sudo apt install sshpass -y
+        sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
+        service ssh restart
+      SHELL
+
+      config.vm.provision :reload
+    end    
+  end
+  # Workers config
+  (1..worker_node_count).each do |i|
+    config.vm.define "#{worker_node_prefix}-#{i}" do |node|
+      node.vm.box = "#{ubuntu_version}"
+      node.vm.box_check_update = true
+      node.vm.hostname = "#{worker_node_prefix}-#{i}"
+      node.vm.provider "virtualbox" do |vb|
+        vb.name = "#{worker_node_prefix}-#{i}"
+        vb.check_guest_additions = true
+        vb.cpus = 1
+        vb.memory = 512
+      end
+      node.vm.network "private_network", ip: "#{cluster_cidr_prefix}.#{master_node_count+i+1}"
+      node.vm.provision "shell", inline: <<-SHELL
+        sudo apt update
+        sudo apt upgrade -y
+        sudo apt install sshpass -y
+        sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
+        service ssh restart
+      SHELL
+    end  
+  end
+  ## Additional servers
+  # No Python
+  config.vm.define "server_no_python" do |server_no_python|
+    server_no_python.vm.box = "#{ubuntu_version}"
+    server_no_python.vm.provider "virtualbox"
+    server_no_python.vm.hostname = "no-python"
+
+    server_no_python.vbguest.auto_update = true
+
+    server_no_python.vm.provider "virtualbox" do |vb|
+      vb.name   = "server_no_python"
+      vb.cpus   = 2
+      vb.memory = 1024
+    end
+
+    server_no_python.vm.network "private_network", ip: "192.168.55.200"
+    server_no_python.vm.provision "shell", inline: <<-SHELL
+      chmod 644 /home/vagrant/.ssh/vagrant.key.pub
+      cat /home/vagrant/.ssh/vagrant.key.pub >> /home/vagrant/.ssh/authorized_keys
+      sudo apt install sshpass -y
+      sed -i 's/ChallengeResponseAuthentication no/ChallengeResponseAuthentication yes/#g' /etc/ssh/sshd_config
+      service ssh restart
+      sudo apt -y remove python3 && sudo apt -y autoremove
+    SHELL
+    config.vm.provision :reload
+  end
+
+  # Centos
+  config.vm.define "server_centos_python" do |server_centos_python|
+    server_centos_python.vm.box = "#{centos_version}"
+    server_centos_python.vm.hostname = "centos"
+    server_centos_python.vbguest.auto_update = true
+
+    server_centos_python.vm.provider "virtualbox" do |vb|
+      vb.name   = "centos"
+      vb.cpus   = 1
+      vb.memory = 512
+    end
+    server_centos_python.vm.network "private_network", ip: "192.168.55.201"
+    server_centos_python.vm.provision "shell", inline: <<-SHELL
+      chmod 644 /home/vagrant/.ssh/vagrant.key.pub
+      cat /home/vagrant/.ssh/vagrant.key.pub >> /home/vagrant/.ssh/authorized_keys
+    SHELL
+  end
+end

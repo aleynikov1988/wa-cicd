@@ -1,0 +1,54 @@
+######################
+# Master Playbook #
+######################
+---
+- hosts: master
+  become:
+    true
+  gather_facts: true
+  vars:
+    test_var: test
+
+  tasks:
+  # Install nginx and config
+    - name: "Installing nginx"
+      ansible.builtin.apt:
+        name: nginx=1.18.0-0ubuntu1.2
+        state: fixed
+        update_cache: yes
+    - name: "Delete /var/www/html"
+      ansible.builtin.file:
+        path: "/var/www/html"
+        state: "absent"
+    - name: "Copy default index.html to /var/www/html"
+      ansible.builtin.copy:
+        src: "files/html"
+        dest: "/var/www/html"
+        owner: "vagrant"
+        group: "vagrant"
+        mode: "0644"
+
+# Install and config MySql
+    - name: "Installing MySQL packages"
+      ansible.builtin.apt:
+        name: "{{item}}"
+        state: latest
+        update_cache: yes
+      with_items:
+        - python3-pymysql
+        - python3-mysqldb
+        - mysql-common
+        - mysql-server
+    - name: "Starting MySQL Server"
+      ansible.builtin.service:
+         name: mysql
+         state: started
+         enabled: yes
+    - name: "Set root user"
+      community.mysql.mysql_user:
+        name: "root"
+        password: "password"
+        login_user: "root"
+        login_password: "password"
+        check_implicit_admin: true
+        login_unix_socket: "/var/run/mysqld/mysqld.sock"

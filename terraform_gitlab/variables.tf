@@ -4,6 +4,11 @@ variable "gitlab_url" {
   default     = "https://gitlab.quarkops.com/api/v4"
 }
 
+variable "gitlab_token" {
+  type = string
+  default = "asdasdsaasdas"
+}
+
 variable "build_number" {
   type = string
 }

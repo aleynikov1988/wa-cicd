@@ -1,0 +1,14 @@
+######################
+# Test MGMT Playbook #
+######################
+---
+- hosts: all
+  become:
+    true
+  gather_facts: true
+  tasks:
+    - name: "Installing Vim"
+      ansible.builtin.apt:
+        name: vim
+        state: latest
+        update_cache: yes
