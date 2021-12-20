@@ -1,0 +1,32 @@
+- name: "Install epel-release yum"
+  ansible.builtin.yum:
+    name: epel-release
+    update_cache: yes
+    state: latest
+
+- name: "Install nginx yum"
+  ansible.builtin.yum:
+    name: nginx
+    update_cache: yes
+    state: latest
+
+- name: "Delete old folder"
+  ansible.builtin.file:
+    state: absent
+    path: /usr/share/nginx/html
+
+- name: "Copy dist folder"
+  ansible.builtin.copy:
+    src: files/html
+    dest: /usr/share/nginx/
+    owner: vagrant
+    group: vagrant
+    mode: 0644
+
+- name: "Replace default config"
+  ansible.builtin.template:
+    src: files/templates/default.centos.conf.j2
+    dest: /etc/nginx/conf.d/default.conf
+    owner: "vagrant"
+    group: "vagrant"
+    mode: "0644"

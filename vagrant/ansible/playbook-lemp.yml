@@ -1,0 +1,38 @@
+######################
+# LEMP Playbook #
+######################
+---
+- name: "Basic installation"
+  hosts: master
+  become: true
+  vars:
+    test_var: "WA Test"
+    version: 7.2
+
+  roles: 
+   - nginx
+
+  tasks:
+  - name: "Reload nginx"
+    ansible.builtin.service:
+      name: nginx
+      state: reloaded
+    debugger: never
+
+  - name: "Test vars"
+    ansible.builtin.debug:
+      msg: "Variable is set to {{ test_var }} {{ansible_date_time}}"
+
+  - name: Print the package facts
+    ansible.builtin.debug:
+      var: ansible_facts
+
+  - name: Print the debug def 7
+    ansible.builtin.debug:
+      msg: "WA test: 7"
+    when: version > 7.1 and version < 8.0
+    
+  - name: Print the debug def 8
+    ansible.builtin.debug:
+      msg: "WA test: 8"
+    when: version >= 8.0

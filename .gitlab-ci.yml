@@ -1,0 +1,121 @@
+
+
+stages:
+  - "test"
+  - "build"
+  - "deploy"
+  - "destroy"
+
+unit_tests:
+  stage: test
+  image: mcr.microsoft.com/dotnet/sdk:5.0
+  tags:
+    - "docker"
+  script:
+    - dotnet test ./dotnet/wa-app.Tests/ --logger:"junit;LogFilePath=../artifacts/{assembly}-test-result.xml;MethodFormat=Class;FailureBodyFormat=Verbose"
+  artifacts:
+    when: always
+    paths:
+      - "./**/*test-result.xml"
+    reports:
+      junit:
+        - "./**/*test-result.xml"
+  only:
+    - merge_request 
+
+solution_build:
+  stage: build
+  needs: [unit_tests]
+  image: mcr.microsoft.com/dotnet/sdk:5.0
+  tags:
+    - "docker"
+  script: 
+    - dotnet publish ./dotnet/wa-app/ $DOTNET_CLI_OPTIONS
+  artifacts:
+    paths:
+      - ./dotnet/wa-app/bin/Release/net5.0/publish/*
+  variables:
+    DOTNET_CLI_OPTIONS: '-c ${BUILD_TYPE}'
+  only:
+    - merge_request 
+
+build_docker:
+  stage: build
+  needs: [unit_tests]
+  tags:
+    - "local"
+  # variables:
+  #   DOCKER_HOST: tcp://docker:2375
+  # services:
+  #   - docker:20.10.8-dind
+  before_script:
+    - docker info
+  script: 
+    - cd dotnet && docker build --build-arg API_VERSION=1.1.1 --build-arg BUILD_NUMBER=${CI_PIPELINE_ID} --tag wa-app:v1.1.1-${CI_PIPELINE_ID}-${CI_COMMIT_SHA} .
+    - docker login -u ${jFrogUser} -p ${jFrogPass} ${jFrogServer}
+    - docker tag wa-app:v1.1.1-${CI_PIPELINE_ID}-${CI_COMMIT_SHA} ${jFrogServer}/wa-docker-local/wa-app:v1.1.1-${CI_PIPELINE_ID}-${CI_COMMIT_SHA}
+    - docker push ${jFrogServer}/wa-docker-local/wa-app:v1.1.1-${CI_PIPELINE_ID}-${CI_COMMIT_SHA}
+  only:
+    - merge_request 
+
+deploy_infrastruture:
+  stage: deploy
+  needs: [build_docker]
+  tags:
+    - "docker"
+  environment:
+    name: dev-0
+  image: registry.gitlab.com/gitlab-org/terraform-images/stable:latest
+  variables:
+    TF_ROOT: ${CI_PROJECT_DIR}/terraform
+    TF_ADDRESS: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/dev-0
+  cache:
+    key: dev-0
+    paths:
+      - ${TF_ROOT}/.terraform
+  before_script:
+    - cd ${TF_ROOT}
+  script:
+    - gitlab-terraform init 
+    - gitlab-terraform validate
+    - gitlab-terraform plan
+    - gitlab-terraform apply
+  when: manual
+  only:
+    - merge_request
+
+deploy_application:
+  stage: deploy
+  needs: ["deploy_infrastruture"]
+  tags:
+    - "docker"
+  environment:
+    name: dev-0
+  script:
+  - echo "test"
+  only:
+    - merge_request
+
+destroy_infrastructure:
+  stage: destroy
+  needs: [deploy_infrastruture]
+  tags:
+    - "docker"
+  image: registry.gitlab.com/gitlab-org/terraform-images/stable:latest
+  variables:
+    TF_ROOT: ${CI_PROJECT_DIR}/terraform
+    TF_ADDRESS: ${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/terraform/state/dev-0
+  cache:
+    key: dev-0
+    paths:
+      - ${TF_ROOT}/.terraform
+  before_script:
+    - cd ${TF_ROOT}
+  script:
+    - gitlab-terraform init 
+    - gitlab-terraform validate
+    - gitlab-terraform plan -destroy
+    - gitlab-terraform apply
+  when: manual
+  only:
+    - merge_request
