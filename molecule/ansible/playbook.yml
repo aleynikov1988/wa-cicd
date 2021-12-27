@@ -1,0 +1,24 @@
+######################
+# MGMT Playbook #
+######################
+---
+- hosts: "all"
+  become:
+    true
+  gather_facts: true
+  tasks:
+    - name: "Copy private key"
+      ansible.builtin.copy:
+        src: files/vagrant.key
+        dest: /home/vagrant/.ssh/vagrant.key
+        owner: vagrant
+        group: vagrant
+        mode: 600
+
+    - name: "Copy public key"
+      ansible.builtin.copy:
+        src: files/vagrant.key.pub
+        dest: /home/vagrant/.ssh/vagrant.key.pub
+        owner: vagrant
+        group: vagrant
+        mode: 644

@@ -11,6 +11,11 @@
     update_cache: yes
     state: latest
 
+- name: "Enable nginx service"
+  ansible.builtin.service:
+    name: "nginx"
+    enabled: "yes"
+
 - name: "Delete old folder"
   ansible.builtin.file:
     state: absent
@@ -18,16 +23,16 @@
 
 - name: "Copy dist folder"
   ansible.builtin.copy:
-    src: files/html
+    src: files/molecule
     dest: /usr/share/nginx/
-    owner: vagrant
-    group: vagrant
+    # owner: vagrant
+    # group: vagrant
     mode: 0644
 
 - name: "Replace default config"
   ansible.builtin.template:
     src: files/templates/default.centos.conf.j2
     dest: /etc/nginx/conf.d/default.conf
-    owner: "vagrant"
-    group: "vagrant"
+    # owner: "vagrant"
+    # group: "vagrant"
     mode: "0644"

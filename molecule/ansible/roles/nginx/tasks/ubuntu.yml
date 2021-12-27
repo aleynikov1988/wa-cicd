@@ -1,0 +1,27 @@
+---
+- name: "Installing nginx"
+  ansible.builtin.apt:
+    name: nginx=1.18.0-0ubuntu1.2
+    state: fixed
+    update_cache: true
+
+- name: "Delete /var/www/html"
+  ansible.builtin.file:
+    path: "/var/www/html"
+    state: "absent"
+
+- name: "Copy default index.html to /var/www/html"
+  ansible.builtin.copy:
+    src: "files/html"
+    dest: "/var/www/html"
+    owner: "vagrant"
+    group: "vagrant"
+    mode: "0644"
+
+- name: "Replace default config"
+  ansible.builtin.template:
+    src: files/templates/default.ubuntu.conf.j2
+    dest: /etc/nginx/sites-available/default.conf
+    owner: "vagrant"
+    group: "vagrant"
+    mode: "0644"
