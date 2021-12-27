@@ -1,11 +1,11 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-master_node_prefix = "master"
-master_node_count = 1
-worker_node_prefix = "worker"
-worker_node_count = 1
-ubuntu_version = "ubuntu/focal64"
+master_node_prefix  = "master"
+master_node_count   = 1
+worker_node_prefix  = "worker"
+worker_node_count   = 1
+ubuntu_version      = "ubuntu/focal64"
 cluster_cidr_prefix = "192.168.55"
 centos_version      = "bento/centos-7.5"
 
